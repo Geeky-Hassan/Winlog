@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .no-spinner {
+    @apply appearance-none;
+
+    /* Chrome, Safari, Edge, Opera */
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      @apply appearance-none;
+      margin: 0;
+    }
+
+    /* Firefox */
+    & {
+      -moz-appearance: textfield;
+    }
+  }
+}
+
+@layer components {
+  .text-format {
+    @apply text-slate-400;
+  }
+  .formik-form input {
+    @apply w-full;
+  }
+  .formik-form input,
+  select {
+    @apply my-5 bg-transparent p-3 border border-slate-400 focus:border-violet-400 focus:outline-none focus:bg-transparent focus:text-slate-400;
+  }
+  .form {
+    @apply sm:px-32 md:px-40 lg:px-64 xl:px-[30%] 2xl:px-[35%];
+  }
+}
