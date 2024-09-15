@@ -2,9 +2,12 @@
 // All the imports here
 // ----------------------
 import {Formik, Field, Form} from "formik";
-import {useState} from "react";
+import {useState,useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import {HandleLogin, HandleRegister} from "../handles/HandleReglo";
+import GoogleeLogin from "./Google";
+import { gapi } from "gapi-script";
+
 // ----------------------
 
 const Reglo = () => {
@@ -15,7 +18,17 @@ const Reglo = () => {
   const handlePass = () => {
     showPass(!pass);
   };
-
+  
+  const clientId = `${process.env.REACT_APP_GOOGLE_CLIENT_ID}.apps.googleusercontent.com`
+  useEffect(()=>{
+const start = () =>{
+  gapi.client.init({
+    clientId:clientId,
+    scope:""
+  })
+}
+gapi.load('client:auth2',start)
+  },[])
   return (
     <>
       {/* Login Form */}
@@ -24,6 +37,7 @@ const Reglo = () => {
           {reglo === "Login" ? (
             <>
               <h1 className="font-bold text-format text-xl text-center my-5">Login</h1>
+    {/* <GoogleeLogin /> */}
               <div className="login-form">
                 <Formik
                   initialValues={{

@@ -11,18 +11,18 @@ export const HandleRegister = async (value, route) => {
       body: JSON.stringify(value),
     });
     const dat = await resp.json();
-    console.log(dat);
-    if (dat.status === 200) {
+    
+    if (dat.status == 201) {
       toast.success(dat.message, {
         duration: 3000,
         position: "top-center",
       });
-
-      route.push(`/user/${dat.username}`);
+      localStorage.setItem("authToken",dat.authToken)
+      route(`/`);
     }
   } catch (error) {
     toast.error(error.message, {
-      duration: 1500,
+      duration: 3000,
       position: "top-center",
     });
   }
@@ -31,8 +31,9 @@ export const HandleRegister = async (value, route) => {
 export const HandleLogin = async (values, route) => {
   console.log(values);
   try {
-    const resp = await fetch(`http://localhost:3000/api/users/login`, {
+    const resp = await fetch(`http://127.0.0.1:8000/login`, {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
       },
@@ -40,19 +41,40 @@ export const HandleLogin = async (values, route) => {
     });
 
     const dat = await resp.json();
+    console.log(dat);
 
-    if (dat.status === 200) {
+    if (resp.status_code==200) { // Check if the response is successful
       toast.success(dat.message, {
         duration: 3000,
         position: "top-center",
       });
-
-      route.push(`/user/${dat.username}`);
+      
+      localStorage.setItem("authToken", dat.authToken);
+      route(`/`);
+    } else {
+      // Handle different error responses
+      if (resp.status_code === 401) {
+        toast.error(dat.detail || "Unauthorized: Invalid email or password", {
+          duration: 1500,
+          position: "top-center",
+        });
+      } else if (resp.status_code === 400) {
+        toast.error(dat.detail || "Bad Request: Missing email or password", {
+          duration: 1500,
+          position: "top-center",
+        });
+      } else {
+        toast.error(dat.detail || "An unexpected error occurred", {
+          duration: 1500,
+          position: "top-center",
+        });
+      }
     }
   } catch (error) {
-    toast.error(error.message, {
+    console.log(error);
+    toast.error("An error occurred while logging in", {
       duration: 1500,
       position: "top-center",
     });
   }
-};
+}
