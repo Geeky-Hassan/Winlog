@@ -28,6 +28,8 @@ class Brags(Base):
     brag_id:Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
     brag_name:Mapped[str] = mapped_column(String(100))
     brag_desc:Mapped[str] = mapped_column(TEXT)
+    brag_tags:Mapped[str] = mapped_column(TEXT)
+    brag_designation:Mapped[str] = mapped_column(TEXT)
     brag_img:Mapped[str] = mapped_column(String(100),nullable=True)
     brag_start_date:Mapped[datetime] = mapped_column(DateTime,nullable=True)
     brag_end_date:Mapped[datetime] = mapped_column(DateTime,nullable=True)

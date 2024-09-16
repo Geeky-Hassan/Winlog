@@ -1,14 +1,14 @@
-import AddBrag from "../components/AddBrag"
+import UpdateBrag from "../components/UpBrag";
 import Sidebar from "../components/global/Sidebar";
-const ABrags = () => {
+const UBrag = () => {
     return (
         <>
         <section className="flex">
         <Sidebar />
-        <AddBrag />
+        <UpdateBrag />
         </section>
         </>
     )
 }
 
-export default ABrags;
+export default UBrag;

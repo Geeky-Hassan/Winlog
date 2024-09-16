@@ -43,7 +43,7 @@ export const HandleLogin = async (values, route) => {
     const dat = await resp.json();
     console.log(dat);
 
-    if (resp.status_code==200) { // Check if the response is successful
+    if (resp.status==200) { // Check if the response is successful
       toast.success(dat.message, {
         duration: 3000,
         position: "top-center",

@@ -1,14 +1,14 @@
-import AddBrag from "../components/AddBrag"
+import DeleteBrag from "../components/DelBrag";
 import Sidebar from "../components/global/Sidebar";
-const ABrags = () => {
+const DBrag = () => {
     return (
         <>
         <section className="flex">
         <Sidebar />
-        <AddBrag />
+        <DeleteBrag />
         </section>
         </>
     )
 }
 
-export default ABrags;
+export default DBrag;

@@ -1,6 +1,7 @@
 from typing import Annotated,Optional
 from datetime import datetime
 from fastapi import FastAPI,Depends, HTTPException,status,File,UploadFile,Form
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -16,7 +17,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'])
-
+app.mount('/uploads/uploaded_brags', StaticFiles(directory="uploaded_brags"), name="uploads")
 
 def get_db():
     db:Session = session_local()
@@ -59,7 +60,7 @@ def login(data: dict, db: Session = Depends(get_db)):
         user = db.query(Users).filter(Users.user_mail == data['email']).first()
         
         # If user not found, raise an exception
-        if not user:
+        if user is None:
             return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email")
         
         # Check the password using bcrypt
@@ -85,7 +86,6 @@ def login(data: dict, db: Session = Depends(get_db)):
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     token =decode_token(token)
-    print(token)
     return token
 
 
@@ -101,6 +101,8 @@ async def add_brag(
     token: Annotated[dict, Depends(get_current_user)],
     title: str = Form(...),
     desc: str = Form(...),
+    tags: list = Form(...),
+    designation:str = Form(...),
     start_date: str = Form(...) ,
     end_date: str = Form(...),
     img: Optional[UploadFile] = File(None),
@@ -110,7 +112,7 @@ async def add_brag(
     
     try:
         user = db.query(Users).filter(Users.user_mail == email).first()
-        print(f"user: {user}")
+    
         
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
@@ -126,6 +128,8 @@ async def add_brag(
         brag = Brags(
             brag_name=title,
             brag_desc=desc,
+            brag_designation=designation,
+            brag_tags=tags,
             brag_img=img_path,
             brag_start_date=start_date,
             brag_end_date=end_date,
@@ -150,6 +154,81 @@ async def add_brag(
     except Exception as e:
         print(e)  # Log the error for debugging
         raise HTTPException(detail="Could not create brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
+
+@app.put("/u_brag")
+async def update_brag(
+    token: Annotated[dict, Depends(get_current_user)],
+    pTitle: str = Form(...),
+    title: str = Form(...),
+    desc: str = Form(...),
+    tags: list = Form(...),
+    designation:str = Form(...),
+    start_date: str = Form(...) ,
+    end_date: str = Form(...),
+    img: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+): 
+    email= token['email']
+    
+    try:
+        user = db.query(Users).filter(Users.user_mail == email).first()
+        
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
+        
+        that_brag = db.query(Brags).filter(Brags.users == user.user_id and Brags.brag_title == pTitle).first()
+        
+        img_path = None
+        if img is not None:
+            img_path = generate_image_path(img.filename, img)
+        
+        # Get current datetime
+        updated_time = datetime.now()
+
+        # Update the brag using the correct column names
+        db.query(Brags).filter(Brags.brag_id == that_brag.brag_id).update({
+            Brags.brag_name: title,
+            Brags.brag_desc: desc,
+            Brags.brag_designation: designation,
+            Brags.brag_tags: tags,
+            Brags.brag_img: img_path,
+            Brags.brag_start_date: start_date,
+            Brags.brag_end_date: end_date,
+            Brags.updated_time: updated_time,
+            Brags.users: user.user_id
+        })
+
+        db.commit()
+        
+        return {"detail": "Brag updated successfully!", "status_code": status.HTTP_201_CREATED}
+    
+    except Exception as e:
+        print(e)  # Log the error for debugging
+        raise HTTPException(detail="Could not update brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
+
+@app.delete("/d_brags")
+async def update_brag(
+    token: Annotated[dict, Depends(get_current_user)],
+    title: dict,
+    db: Session = Depends(get_db)
+): 
+    email= token['email']
+    
+    try:
+        user = db.query(Users).filter(Users.user_mail == email).first()
+        print(f"title: {title}")
+        
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
+        db.query(Brags).filter(Brags.users == user.user_id and Brags.brag_title == title).delete()
+    
+        db.commit()
+        
+        return {"detail": "Brag deleted successfully!", "status_code": status.HTTP_200_OK}
+    
+    except Exception as e:
+        print(e)  # Log the error for debugging
+        raise HTTPException(detail="Could not delete brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
 
 if __name__ == '__main__':
     import uvicorn

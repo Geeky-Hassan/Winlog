@@ -1,12 +1,12 @@
 import { Formik, Field, Form } from "formik";
 import { useState } from "react";
 import { useNavigate,useLocation } from "react-router-dom";
-import { HandleBrag } from "../handles/HandleBrag";
+import { UpdateBrags } from "../handles/HandleBrag";
 
-const AddBrag = () => {
-  const [loading, isLoading] = useState(false);
-  const route = useNavigate();
-  const location = useLocation();
+const UpdateBrag = () => {
+    const [loading, isLoading] = useState(false);
+    const route = useNavigate();
+    const location = useLocation();
 
   return (
     <Formik
@@ -21,6 +21,7 @@ const AddBrag = () => {
       }}
       onSubmit={async (values) => {
         const formData = new FormData();
+        formData.append("pTitle", values.pTitle);
         formData.append("title", values.title);
         formData.append("desc", values.desc);
         formData.append("tags", values.tags.split(","));
@@ -40,7 +41,7 @@ const AddBrag = () => {
 
         isLoading(true);
         try {
-          await HandleBrag(formData, route,location);
+          await UpdateBrags(formData, route,location);
         } finally {
           isLoading(false);
         }
@@ -48,13 +49,17 @@ const AddBrag = () => {
     >
       {({ setFieldValue }) => (
         <Form className="text-format formik-form mx-auto">
+          <label className="pTitle" htmlFor="pTitle">Previous Title:</label>
+          <br />
+          <Field required id="pTitle" name="pTitle" placeholder="Current brag title..." />
+          <br />
           <label className="name" htmlFor="title">Brag Title:</label>
           <br />
-          <Field required id="title" name="title" placeholder="Your brag title..." />
+          <Field required id="title" name="title" placeholder="New brag title..." />
           <br />
           <label htmlFor="desc">Brag Description:</label>
           <br />
-          <Field id="desc" name="desc" placeholder="Your brag description..." type="text" />
+          <Field id="desc" name="desc" placeholder="New brag description..." type="text" />
           <br />
           <br />
           <label htmlFor="tags">Brag Tags:</label>
@@ -65,7 +70,7 @@ const AddBrag = () => {
           <br />
           <label htmlFor="designation">Brag Designation:</label>
           <br />
-          <Field id="designation" name="designation" placeholder="Your Designation" type="text" />
+          <Field id="designation" name="designation" placeholder="New Designation" type="text" />
           <br />
           <label htmlFor="img">Brag Image: (Optional)</label>
           <br />
@@ -92,7 +97,7 @@ const AddBrag = () => {
               className="btn border border-slate-400 p-2 w-full text-center rounded-lg hover:bg-indigo-500 hover:text-slate-200"
               type="submit"
             >
-              {loading ? "Submitting..." : "Submit"}
+              {loading ? "Updating..." : "Update"}
             </button>
           </div>
         </Form>
@@ -101,4 +106,4 @@ const AddBrag = () => {
   );
 };
 
-export default AddBrag;
+export default UpdateBrag;
