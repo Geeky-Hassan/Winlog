@@ -261,7 +261,6 @@ async def revert_brag(
     try:
         # Fetch the user from the database
         user = db.query(Users).filter(Users.user_mail == email).first()
-        print(f"title: {title}")
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
         
@@ -283,7 +282,8 @@ async def revert_brag(
 
         # Revert the previous brag by setting is_soft_deleted to False
         db.query(Brags).filter(Brags.brag_id == previous_brag.brag_id).update({
-            Brags.is_soft_deleted: False
+            Brags.is_soft_deleted: False,
+            Brags.brag_next: None 
         })
 
         # Delete the current brag
