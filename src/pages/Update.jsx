@@ -1,14 +1,18 @@
 import UpdateBrag from "../components/UpBrag";
 import Sidebar from "../components/global/Sidebar";
+import Footer from "../components/global/Footer";
+
 const UBrag = () => {
-    return (
-        <>
-        <section className="flex">
-        <Sidebar />
+  return (
+    <>
+      <Sidebar />
+
+      <section>
         <UpdateBrag />
-        </section>
-        </>
-    )
-}
+      </section>
+      <Footer />
+    </>
+  );
+};
 
 export default UBrag;

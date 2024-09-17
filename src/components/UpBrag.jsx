@@ -1,108 +1,242 @@
 import { Formik, Field, Form } from "formik";
-import { useState } from "react";
-import { useNavigate,useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { UpdateBrags } from "../handles/HandleBrag";
 
 const UpdateBrag = () => {
-    const [loading, isLoading] = useState(false);
-    const route = useNavigate();
-    const location = useLocation();
+  const [loading, isLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const route = useNavigate();
+  const location = useLocation();
+
+  // Function to fetch suggestions from Gemini Flash API
+  const fetchSuggestions = async (query) => {
+    if (!query) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `https://api.gemini.com/v1/suggestions?query=${query}`
+      );
+      const data = await response.json();
+      setSuggestions(data.suggestions || []);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+    }
+  };
+
+  // Fetch previous title from location state or other source
+  const previousTitle = location.state?.previousTitle || "";
 
   return (
-    <Formik
-      initialValues={{
-        title: "",
-        desc: "",
-        tags: "",
-        designation: "",
-        img: null,
-        start_date: "",
-        end_date: "",
-      }}
-      onSubmit={async (values) => {
-        const formData = new FormData();
-        formData.append("pTitle", values.pTitle);
-        formData.append("title", values.title);
-        formData.append("desc", values.desc);
-        formData.append("tags", values.tags.split(","));
-        formData.append("designation", values.designation);
-        
-        // Only append the image if it exists
-        if (values.img) {
-          formData.append("img", values.img); // Ensure this is the file input
-        }
-        
-        if(values.start_date){
-        formData.append("start_date", values.start_date);
-        }
-        if(values.end_date){
-        formData.append("end_date", values.end_date);
-        }
+    <div className="flex items-center justify-center">
+      <div className="w-full max-w-xl p-6 bg-white shadow-lg rounded-lg">
+        <h1 className="text-2xl font-bold mb-4 text-center">
+          Update Your Brag Document
+        </h1>
+        <Formik
+          initialValues={{
+            pTitle: previousTitle,
+            title: "",
+            desc: "",
+            tags: "",
+            designation: "",
+            img: null,
+            start_date: "",
+            end_date: "",
+          }}
+          onSubmit={async (values) => {
+            console.log("Form values on submit:", values); // Debug log
+            const formData = new FormData();
+            formData.append("pTitle", values.pTitle);
+            formData.append("title", values.title);
+            formData.append("desc", values.desc);
+            formData.append("tags", values.tags.split(","));
+            formData.append("designation", values.designation);
 
-        isLoading(true);
-        try {
-          await UpdateBrags(formData, route,location);
-        } finally {
-          isLoading(false);
-        }
-      }}
-    >
-      {({ setFieldValue }) => (
-        <Form className="text-format formik-form mx-auto">
-          <label className="pTitle" htmlFor="pTitle">Previous Title:</label>
-          <br />
-          <Field required id="pTitle" name="pTitle" placeholder="Current brag title..." />
-          <br />
-          <label className="name" htmlFor="title">Brag Title:</label>
-          <br />
-          <Field required id="title" name="title" placeholder="New brag title..." />
-          <br />
-          <label htmlFor="desc">Brag Description:</label>
-          <br />
-          <Field id="desc" name="desc" placeholder="New brag description..." type="text" />
-          <br />
-          <br />
-          <label htmlFor="tags">Brag Tags:</label>
-          <br />
-          <span>Comma separates tags</span>
-          <br />
-          <Field id="tags" name="tags" placeholder="Creative, Skilled, Technical, Problem Solver" type="text" />
-          <br />
-          <label htmlFor="designation">Brag Designation:</label>
-          <br />
-          <Field id="designation" name="designation" placeholder="New Designation" type="text" />
-          <br />
-          <label htmlFor="img">Brag Image: (Optional)</label>
-          <br />
-          <input
-            id="img"
-            name="img"
-            type="file"
-            onChange={(event) => {
-              const file = event.currentTarget.files[0];
-              setFieldValue("img", file); // Use setFieldValue to update the file input
-            }}
-          />
-          <br />
-          <label htmlFor="start_date">Start Date:</label>
-          <br />
-          <Field id="start_date" name="start_date" placeholder="Your brag start date" type="date" />
-          <br />
-          <label htmlFor="end_date">End Date: (If going on, leave empty)</label>
-          <br />
-          <Field id="end_date" name="end_date" placeholder="Your brag end date" type="date" />
-          <br />
-          <div className="mt-5">
-            <button
-              className="btn border border-slate-400 p-2 w-full text-center rounded-lg hover:bg-indigo-500 hover:text-slate-200"
-              type="submit"
-            >
-              {loading ? "Updating..." : "Update"}
-            </button>
-          </div>
-        </Form>
-      )}
-    </Formik>
+            // Only append the image if it exists
+            if (values.img) {
+              formData.append("img", values.img); // Ensure this is the file input
+            }
+
+            if (values.start_date) {
+              formData.append("start_date", values.start_date);
+            }
+            if (values.end_date) {
+              formData.append("end_date", values.end_date);
+            }
+
+            isLoading(true);
+            try {
+              await UpdateBrags(formData, route, location);
+            } finally {
+              isLoading(false);
+            }
+          }}
+        >
+          {({ setFieldValue }) => (
+            <Form className="space-y-4">
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="pTitle"
+                >
+                  Previous Title:
+                </label>
+                <br />
+                <Field
+                  required
+                  id="pTitle"
+                  name="pTitle"
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Previous brag title..."
+                />
+                <br />
+
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="title"
+                >
+                  Brag Title:
+                </label>
+                <Field
+                  required
+                  id="title"
+                  name="title"
+                  placeholder="Your brag title..."
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(e) => {
+                    setFieldValue("title", e.target.value);
+                    fetchSuggestions(e.target.value); // Fetch suggestions on input change
+                  }}
+                />
+                {suggestions.length > 0 && (
+                  <ul className="absolute bg-white border border-gray-300 mt-1 rounded-md shadow-lg z-10">
+                    {suggestions.map((suggestion, index) => (
+                      <li
+                        key={index}
+                        className="p-2 hover:bg-gray-200 cursor-pointer"
+                        onClick={() => {
+                          setFieldValue("title", suggestion);
+                          setSuggestions([]); // Clear suggestions after selection
+                        }}
+                      >
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="desc"
+                >
+                  Brag Description:
+                </label>
+                <Field
+                  id="desc"
+                  name="desc"
+                  placeholder="Your brag description..."
+                  type="text"
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="tags"
+                >
+                  Brag Tags:
+                </label>
+                <span className="text-xs text-gray-500">
+                  Comma separates tags
+                </span>
+                <Field
+                  id="tags"
+                  name="tags"
+                  placeholder="Creative, Skilled, Technical, Problem Solver"
+                  type="text"
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="designation"
+                >
+                  Brag Designation:
+                </label>
+                <Field
+                  id="designation"
+                  name="designation"
+                  placeholder="Your Designation"
+                  type="text"
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="img"
+                >
+                  Brag Image: (Optional)
+                </label>
+                <input
+                  id="img"
+                  name="img"
+                  type="file"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files[0];
+                    setFieldValue("img", file);
+                  }}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="start_date"
+                >
+                  Start Date:
+                </label>
+                <Field
+                  id="start_date"
+                  name="start_date"
+                  placeholder="Your brag start date"
+                  type="date"
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="end_date"
+                >
+                  End Date: (If going on, leave empty)
+                </label>
+                <Field
+                  id="end_date"
+                  name="end_date"
+                  placeholder="Your brag end date"
+                  type="date"
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <button
+                  className="w-full btn btn-primary text-white font-semibold py-2 rounded-md hover:bg-indigo-700 transition duration-200"
+                  type="submit"
+                >
+                  {loading ? "Submitting..." : "Update"}
+                </button>
+              </div>
+            </Form>
+          )}
+        </Formik>
+      </div>
+    </div>
   );
 };
 

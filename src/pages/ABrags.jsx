@@ -1,14 +1,17 @@
-import AddBrag from "../components/AddBrag"
 import Sidebar from "../components/global/Sidebar";
+import AddBrag from "../components/AddBrag";
+import Footer from "../components/global/Footer";
+
 const ABrags = () => {
-    return (
-        <>
-        <section className="flex">
-        <Sidebar />
+  return (
+    <>
+      <Sidebar />
+      <section className="">
         <AddBrag />
-        </section>
-        </>
-    )
-}
+      </section>
+      <Footer />
+    </>
+  );
+};
 
 export default ABrags;

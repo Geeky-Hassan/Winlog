@@ -22,16 +22,123 @@
 
 @layer components {
   .text-format {
-    @apply text-slate-400;
+    @apply text-red_violet-400; /* Updated color */
   }
   .formik-form input {
     @apply w-full;
   }
   .formik-form input,
   select {
-    @apply my-5 bg-transparent p-3 border border-slate-400 focus:border-violet-400 focus:outline-none focus:bg-transparent focus:text-slate-400;
+    @apply my-5 bg-transparent p-3 border border-tyrian_purple-400 focus:border-tyrian_purple-600 focus:outline-none focus:bg-transparent focus:text-tyrian_purple-400; /* Updated colors */
   }
   .form {
     @apply sm:px-32 md:px-40 lg:px-64 xl:px-[30%] 2xl:px-[35%];
   }
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border rounded-md text-sm font-medium transition duration-150 ease-in-out;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-tyrian_purple-600 to-tyrian_purple-500 text-white border border-transparent shadow-md hover:bg-gradient-to-r hover:from-tyrian_purple-600 hover:to-tyrian_purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-tyrian_purple-500;
+  }
+
+  .btn-secondary {
+    @apply bg-gradient-to-r from-transparent to-tyrian_purple-600 text-tyrian_purple-600 border border-tyrian_purple-600 shadow-md hover:bg-gradient-to-r hover:from-tyrian_purple-300 hover:to-tyrian_purple-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-tyrian_purple-500;
+  }
+
+  .btn-other {
+    @apply bg-gradient-to-r from-red_violet-500 to-mulberry-500 text-white border border-transparent shadow-md hover:bg-gradient-to-r hover:from-red_violet-700 hover:to-mulberry-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red_violet-500;
+  }
+}
+
+section {
+  padding: 100px 0px;
+}
+
+/* Form container */
+.form-container {
+  @apply min-h-screen flex flex-col md:flex-row bg-gray-100;
+}
+
+/* Left column */
+.left-column {
+  @apply md:w-1/2 bg-tyrian_purple-500 text-white p-12 flex flex-col justify-center items-center; /* Updated color */
+}
+
+.left-column h1 {
+  @apply text-4xl font-bold mb-6;
+}
+
+.left-column p {
+  @apply text-xl mb-8;
+}
+
+.left-column .logo {
+  @apply w-32 h-32 object-contain;
+}
+
+.left-column .decorative-image {
+  @apply mt-8 rounded-lg shadow-lg max-w-sm;
+}
+
+/* Right column */
+.right-column {
+  @apply md:w-1/2 p-12 flex items-center justify-center;
+}
+
+.form-wrapper {
+  @apply max-w-md w-full space-y-8;
+}
+
+.form-title {
+  @apply text-3xl font-extrabold text-gray-900 text-center;
+}
+
+/* Form elements */
+.input-label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.input-field {
+  @apply block w-full px-4 py-3 rounded-md border-gray-300 shadow-sm focus:border-tyrian_purple-500 focus:ring focus:ring-tyrian_purple-200 focus:ring-opacity-50; /* Updated focus colors */
+}
+
+.submit-button {
+  @apply w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-tyrian_purple-600 hover:bg-tyrian_purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-tyrian_purple-500 transition duration-150 ease-in-out; /* Updated colors */
+}
+
+.toggle-form-button {
+  @apply font-medium text-tyrian_purple-600 hover:text-tyrian_purple-500; /* Updated color */
+}
+
+/* Divider */
+.divider {
+  @apply relative;
+}
+
+.divider::before {
+  content: "";
+  @apply absolute inset-0 flex items-center;
+}
+
+.divider::after {
+  content: "";
+  @apply w-full border-t border-gray-300;
+}
+
+.divider-text {
+  @apply relative flex justify-center text-sm;
+}
+
+.divider-text span {
+  @apply px-2 bg-white text-gray-500;
+}
+
+/* Password visibility toggle */
+.password-toggle {
+  @apply absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5;
+}
+
+.password-toggle svg {
+  @apply h-5 w-5 text-gray-500;
 }

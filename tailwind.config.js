@@ -1,12 +1,65 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        tyrian_purple: {
+          DEFAULT: "#4A002E",
+          100: "#0F0009",
+          200: "#1E0012",
+          300: "#2C001B",
+          400: "#3A0024",
+          500: "#4A002E",
+          600: "#8C0054",
+          700: "#CC007A",
+          800: "#E04C9A",
+          900: "#F399BA",
+        },
+        red_violet: {
+          DEFAULT: "#8C0959",
+          100: "#1C0210",
+          200: "#380421",
+          300: "#540632",
+          400: "#700843",
+          500: "#8C0959",
+          600: "#B80C7A",
+          700: "#D13A94",
+          800: "#E86AB0",
+          900: "#F49AD0",
+        },
+        mulberry: {
+          DEFAULT: "#9E2E6F",
+          100: "#1F0A17",
+          200: "#3E142E",
+          300: "#5D1E45",
+          400: "#7C285C",
+          500: "#9E2E6F",
+          600: "#B8578A",
+          700: "#D180A5",
+          800: "#E8A9C0",
+          900: "#F4D2DB",
+        },
+        another_red_violet: {
+          DEFAULT: "#951F66",
+          100: "#1B0812",
+          200: "#361024",
+          300: "#511836",
+          400: "#6C2048",
+          500: "#951F66",
+          600: "#B83A82",
+          700: "#D15A9E",
+          800: "#E87AB9",
+          900: "#F4A2D4",
+        },
+      },
+      backgroundImage: {
+        "gradient-primary": "linear-gradient(to right, #8C0054, #F399BA)",
+        "gradient-secondary": "linear-gradient(to right, transparent, #8C0054)",
+        "gradient-other": "linear-gradient(to right, #8C0959, #9E2E6F)",
+        "gradient-footer": "linear-gradient(to right, #221c1f, #57163d)",
+      },
+    },
   },
   plugins: [],
-}
-
+};
