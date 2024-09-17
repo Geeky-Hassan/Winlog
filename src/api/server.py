@@ -4,6 +4,7 @@ from fastapi import FastAPI,Depends, HTTPException,status,File,UploadFile,Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from database import session_local,Users,Brags
 from globe.back_func import *
@@ -149,11 +150,13 @@ async def add_brag(
             print(f"Error while adding brag: {e}")  # Log the error
             raise HTTPException(detail="Could not create brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
         
-        return {"detail": "Brag created successfully!", "status_code": status.HTTP_201_CREATED}
+        return {"detail": "Brag created successfully!", "status_code": status.HTTP_201_CREATED, "brag_id":brag.brag_id}
     
     except Exception as e:
         print(e)  # Log the error for debugging
         raise HTTPException(detail="Could not create brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
+
+from sqlalchemy import and_
 
 @app.put("/u_brag")
 async def update_brag(
@@ -162,44 +165,59 @@ async def update_brag(
     title: str = Form(...),
     desc: str = Form(...),
     tags: list = Form(...),
-    designation:str = Form(...),
-    start_date: str = Form(...) ,
+    designation: str = Form(...),
+    start_date: str = Form(...),
     end_date: str = Form(...),
     img: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ): 
-    email= token['email']
-    
+    email = token['email']
+
     try:
+        # Fetch the user from the database
         user = db.query(Users).filter(Users.user_mail == email).first()
         
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
         
-        that_brag = db.query(Brags).filter(Brags.users == user.user_id and Brags.brag_title == pTitle).first()
-        
-        img_path = None
-        if img is not None:
-            img_path = generate_image_path(img.filename, img)
-        
+        # Find the old brag using the provided title (pTitle)
+        old_brag = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_name == pTitle)).first()
+
+        if old_brag is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Old brag not found")
+
+        # Call the `add_brag` coroutine and pass `db` as an argument
+        new_brag = await add_brag(
+            token=token,
+            title=title,
+            desc=desc,
+            tags=tags,
+            designation=designation,
+            start_date=start_date,
+            end_date=end_date,
+            img=img,
+            db=db
+        )
+
         # Get current datetime
         updated_time = datetime.now()
 
-        # Update the brag using the correct column names
-        db.query(Brags).filter(Brags.brag_id == that_brag.brag_id).update({
-            Brags.brag_name: title,
-            Brags.brag_desc: desc,
-            Brags.brag_designation: designation,
-            Brags.brag_tags: tags,
-            Brags.brag_img: img_path,
-            Brags.brag_start_date: start_date,
-            Brags.brag_end_date: end_date,
-            Brags.updated_time: updated_time,
-            Brags.users: user.user_id
+        # Set old brag's `is_soft_deleted` to True and update the `next` field
+        db.query(Brags).filter(Brags.brag_id == old_brag.brag_id).update({
+            Brags.is_soft_deleted: True,
+            Brags.brag_next: new_brag['brag_id'],  # Set next to new_brag's ID
+            Brags.updated_time: updated_time
         })
 
+        # Update the new brag with the `prev` field set to the old_brag's ID
+        db.query(Brags).filter(Brags.brag_id == new_brag['brag_id']).update({
+            Brags.brag_prev: old_brag.brag_id,
+            Brags.updated_time: updated_time
+        })
+
+        # Commit the changes to the database
         db.commit()
-        
+
         return {"detail": "Brag updated successfully!", "status_code": status.HTTP_201_CREATED}
     
     except Exception as e:
@@ -216,12 +234,11 @@ async def update_brag(
     
     try:
         user = db.query(Users).filter(Users.user_mail == email).first()
-        print(f"title: {title}")
         
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
-        db.query(Brags).filter(Brags.users == user.user_id and Brags.brag_title == title).delete()
-    
+        now = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_title == title)).first()
+        db.delete(now)
         db.commit()
         
         return {"detail": "Brag deleted successfully!", "status_code": status.HTTP_200_OK}
@@ -229,6 +246,58 @@ async def update_brag(
     except Exception as e:
         print(e)  # Log the error for debugging
         raise HTTPException(detail="Could not delete brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
+
+# ----------------------------
+# Revert Brag to previous state
+# ----------------------------
+@app.delete("/r_brags")
+async def revert_brag(
+    token: Annotated[dict, Depends(get_current_user)],
+    title: dict, 
+    db: Session = Depends(get_db)
+):
+    email = token['email']
+    
+    try:
+        # Fetch the user from the database
+        user = db.query(Users).filter(Users.user_mail == email).first()
+        print(f"title: {title}")
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
+        
+        # Find the current brag by title
+        current_brag = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_name == title['brag_title'])).first()
+        
+        if current_brag is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brag not found")
+        
+        # Check if the current brag has a previous version
+        if current_brag.brag_prev is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No previous version to revert to")
+
+        # Find the previous brag using the prev field
+        previous_brag = db.query(Brags).filter(Brags.brag_id == current_brag.brag_prev).first()
+
+        if previous_brag is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Previous version not found")
+
+        # Revert the previous brag by setting is_soft_deleted to False
+        db.query(Brags).filter(Brags.brag_id == previous_brag.brag_id).update({
+            Brags.is_soft_deleted: False
+        })
+
+        # Delete the current brag
+        db.delete(current_brag)
+
+        # Commit the changes
+        db.commit()
+
+        return {"detail": "Brag reverted to previous version successfully!", "status_code": status.HTTP_200_OK}
+    
+    except Exception as e:
+        print(e)  # Log the error for debugging
+        raise HTTPException(detail="Could not revert brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
+    
 
 if __name__ == '__main__':
     import uvicorn

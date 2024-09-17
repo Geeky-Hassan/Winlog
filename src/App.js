@@ -6,6 +6,7 @@ import Logout from './pages/Logout';
 import ABrags from './pages/ABrags';
 import UBrag from './pages/Update';
 import DBrag from './pages/DBrags';
+import RBrag from './pages/RevBrag';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/brags" element={<ProtectedRoute element={<ABrags />} />} />
         <Route path="/upbrags" element={<ProtectedRoute element={<UBrag />} />} />
         <Route path="/delbrags" element={<ProtectedRoute element={<DBrag />} />} />
+        <Route path="/revbrags" element={<ProtectedRoute element={<RBrag />} />} />
       </Routes>
     </Router>
     </>

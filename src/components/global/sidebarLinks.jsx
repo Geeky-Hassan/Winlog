@@ -22,6 +22,11 @@ export const sidebarPrimaryLinks = [
     path: "/delbrags",
   },
   {
+    title: "Revert Brags",
+    // icon: <Banknote color="white" size={20} />,
+    path: "/revbrags",
+  },
+  {
     title: "Logout",
     // icon: <Banknote color="white" size={20} />,
     path: "/logout",
