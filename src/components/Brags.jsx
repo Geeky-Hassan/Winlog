@@ -4,6 +4,7 @@ import moment from "moment";
 import { Link } from "react-router-dom";
 import { CSVLink } from "react-csv";
 import BragPdfWrapper from "./BragPdfWrapper"; // Assuming you're using the wrapper for pre-fetching images
+import BragWordDownload from "./BragWordDownload";
 
 const Brags = () => {
   const [data, setData] = useState([]);
@@ -16,9 +17,16 @@ const Brags = () => {
       try {
         const res = await GetBrags();
         // Sort data by brag_start_date in descending order
-        const sortedData = res.brags.sort(
-          (a, b) => new Date(b.brag_start_date) - new Date(a.brag_start_date)
-        );
+        const sortedData = res.brags
+          .map((brag) => ({
+            ...brag,
+            brag_tags: Array.isArray(brag.brag_tags)
+              ? brag.brag_tags.join(", ")
+              : brag.brag_tags,
+          }))
+          .sort(
+            (a, b) => new Date(b.brag_start_date) - new Date(a.brag_start_date)
+          );
         setData(sortedData);
         setLoading(false);
       } catch (error) {
@@ -153,23 +161,8 @@ const Brags = () => {
 
   const DownloadButtons = ({ data }) => (
     <div className="space-y-4">
-      <CSVLink
-        filename="myBragDoc.csv"
-        data={data}
-        headers={[
-          { label: "Brag Id", key: "brag_id" },
-          { label: "Title", key: "brag_name" },
-          { label: "Description", key: "brag_desc" },
-          { label: "Tags", key: "brag_tags" },
-          { label: "Image Path", key: "brag_img" },
-          { label: "Start Date", key: "brag_start_date" },
-          { label: "End Date", key: "brag_end_date" },
-        ]}
-        className="block w-full font-semibold py-3 text-center px-4 btn btn-primary"
-      >
-        Download as CSV
-      </CSVLink>
       <BragPdfWrapper data={data} />
+      <BragWordDownload />
     </div>
   );
 

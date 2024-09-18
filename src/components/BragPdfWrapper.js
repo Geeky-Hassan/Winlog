@@ -23,19 +23,21 @@ const fetchImageWithTimeout = async (url, timeout = 5000, retries = 2) => {
       reject(new Error("Image fetch timeout"));
     }, timeout);
 
-    fetch(url, { signal })
+    fetch(url, {
+      signal,
+      mode: "cors", // Add this line
+      credentials: "include", // Add this line if your server requires credentials
+    })
       .then((response) => {
         clearTimeout(timer);
         if (response.ok) {
-          resolve(response.blob());
+          return response.blob();
         } else {
-          reject(new Error("Failed to load image"));
+          throw new Error("Failed to load image");
         }
       })
-      .catch((error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
+      .then(resolve)
+      .catch(reject);
   });
 
   for (let i = 0; i < retries; i++) {

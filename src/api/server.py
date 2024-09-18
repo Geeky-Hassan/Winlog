@@ -9,6 +9,16 @@ from sqlalchemy.orm import Session
 from database import session_local,Users,Brags
 from globe.back_func import *
 import bcrypt
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+import os
+from dotenv import load_dotenv
+from docx import Document
+from docx.shared import Inches
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+
+load_dotenv()  # This loads the variables from .env
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app:FastAPI = FastAPI()
@@ -225,7 +235,7 @@ async def update_brag(
         raise HTTPException(detail="Could not update brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
 
 @app.delete("/d_brags")
-async def update_brag(
+async def delete_brags(
     token: Annotated[dict, Depends(get_current_user)],
     title: dict,
     db: Session = Depends(get_db)
@@ -237,7 +247,7 @@ async def update_brag(
         
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
-        now = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_title == title)).first()
+        now = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_name == title['brag_title'])).first()
         db.delete(now)
         db.commit()
         
@@ -298,6 +308,90 @@ async def revert_brag(
         print(e)  # Log the error for debugging
         raise HTTPException(detail="Could not revert brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
     
+
+@app.post('/google-login')
+async def google_login(token: dict, db: Session = Depends(get_db)):
+    try:
+        print("Received token:", token)  # Log the received token
+        
+        # Create credentials using the access token
+        credentials = Credentials(token['token'])
+        
+        # Build the Google People API service
+        service = build('people', 'v1', credentials=credentials)
+        
+        # Call the People API
+        person = service.people().get(resourceName='people/me', personFields='names,emailAddresses').execute()
+        
+        # Extract user info
+        email = person['emailAddresses'][0]['value']
+        name = person['names'][0]['displayName']
+        print(f"User info - Email: {email}, Name: {name}")  # Log user info
+
+        # Check if user exists in your database
+        user = db.query(Users).filter(Users.user_mail == email).first()
+        print("Existing user:", user)  # Log if user exists
+
+        if not user:
+            # Create a new user if they don't exist
+            user = Users(user_mail=email, user_name=name, user_pass="google_auth")
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            print("New user created:", user)  # Log new user creation
+
+        # Generate JWT token
+        token = generate_token({"email": email, "id": user.user_id})
+        print("Generated JWT token:", token)  # Log generated token
+
+        return {"message": "Google login successful", "authToken": token, "status": status.HTTP_200_OK}
+
+    except Exception as e:
+        print("Exception:", str(e))  # Log general exception
+        raise HTTPException(status_code=500, detail=f"Could not process Google login: {str(e)}")
+
+@app.get("/download_brags_word")
+async def download_brags_word(token: Annotated[dict, Depends(get_current_user)], db: Session = Depends(get_db)):
+    email = token['email']
+    user_id = db.query(Users).filter(Users.user_mail == email).first().user_id 
+    brags = db.query(Brags).filter(Brags.users == user_id).all()
+
+    document = Document()
+    document.add_heading('Your Brag Document', 0)
+
+    for brag in brags:
+        document.add_heading(brag.brag_name, level=1)
+        document.add_paragraph(f"Designation: {brag.brag_designation}")
+        document.add_paragraph(f"Date: {brag.brag_start_date} - {brag.brag_end_date}")
+        document.add_paragraph(brag.brag_desc)
+        
+        # Join the tags list into a string
+        tags_string = ", ".join(brag.brag_tags) if isinstance(brag.brag_tags, list) else brag.brag_tags
+        document.add_paragraph(f"Tags: {tags_string}")
+        
+        if brag.brag_img:
+            try:
+                # img_path = os.path.join("uploaded_brags", brag.brag_img)
+                img_path = brag.brag_img
+                if os.path.exists(img_path):
+                    document.add_picture(img_path, width=Inches(6))
+                else:
+                    document.add_paragraph("Image not found")
+            except Exception as e:
+                print(f"Error adding image: {e}")
+                document.add_paragraph("Error adding image")
+        
+        document.add_page_break()
+
+    docx_file = BytesIO()
+    document.save(docx_file)
+    docx_file.seek(0)
+
+    return StreamingResponse(
+        iter([docx_file.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": "attachment; filename=brags.docx"}
+    )
 
 if __name__ == '__main__':
     import uvicorn

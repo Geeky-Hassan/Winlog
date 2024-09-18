@@ -5,8 +5,9 @@ const Home = () => {
   return (
     <>
       <Sidebar />
-
-      <Brags />
+      <section className="min-h-screen">
+        <Brags />
+      </section>
 
       <Footer />
     </>
