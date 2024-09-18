@@ -1,7 +1,7 @@
 import { Formik, Field, Form } from "formik";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { UpdateBrags } from "../handles/HandleBrag";
+import { UpdateBrag as UpdateBrags } from "../handles/HandleBrag";
 
 const UpdateBrag = () => {
   const [loading, isLoading] = useState(false);
@@ -84,7 +84,6 @@ const UpdateBrag = () => {
                 >
                   Previous Title:
                 </label>
-                <br />
                 <Field
                   required
                   id="pTitle"

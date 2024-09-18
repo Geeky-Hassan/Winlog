@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import BragPdf from "./BragPDF";
 
 // Helper function to convert blob to base64
@@ -53,8 +53,9 @@ const fetchImageWithTimeout = async (url, timeout = 5000, retries = 2) => {
 const BragPdfWrapper = ({ data }) => {
   const [logoBase64, setLogoBase64] = useState(null);
   const [bragImages, setBragImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
 
   useEffect(() => {
     const fetchLogoAndImages = async () => {
@@ -84,44 +85,70 @@ const BragPdfWrapper = ({ data }) => {
 
         const images = await Promise.all(imagesPromises);
         setBragImages(images);
-        setLoading(false);
       } catch (err) {
         console.error("Error fetching images or logo:", err);
         setError("Failed to load all assets.");
-        setLoading(false);
       }
     };
 
     fetchLogoAndImages();
   }, [data]);
 
-  if (loading) {
-    return <div>Loading PDF...</div>;
-  }
+  const generatePdf = async () => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const pdfDoc = (
+        <BragPdf data={data} logoBase64={logoBase64} bragImages={bragImages} />
+      );
+      const asPdf = pdf([]);
+      asPdf.updateContainer(pdfDoc);
+      const blob = await asPdf.toBlob();
+      setPdfBlob(blob);
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      setError("Failed to generate PDF.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const downloadPdf = () => {
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "brag.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  };
 
   if (error) {
-    return <div>{error}</div>;
+    return <div className="text-red-500">{error}</div>;
   }
 
   return (
-    <PDFDownloadLink
-      document={
-        <BragPdf data={data} logoBase64={logoBase64} bragImages={bragImages} />
-      }
-      fileName="brag.pdf"
-    >
-      {({ loading }) =>
-        loading ? (
-          <span className="block w-full mt-3 font-semibold py-3 text-center px-4 btn btn-primary">
-            Loadind Pdf.....
-          </span>
-        ) : (
-          <span className="block w-full mt-3 font-semibold py-3 text-center px-4 btn btn-primary">
-            Download Pdf
-          </span>
-        )
-      }
-    </PDFDownloadLink>
+    <div>
+      {!pdfBlob ? (
+        <button
+          onClick={generatePdf}
+          disabled={isGenerating}
+          className={`block w-full mt-3 font-semibold py-3 text-center px-4 btn ${
+            isGenerating ? "btn-primary" : "btn-primary"
+          }`}
+        >
+          {isGenerating ? "Generating PDF..." : "Generate PDF"}
+        </button>
+      ) : (
+        <button
+          onClick={downloadPdf}
+          className="block w-full mt-3 font-semibold py-3 text-center px-4 btn btn-primary"
+        >
+          Download PDF
+        </button>
+      )}
+    </div>
   );
 };
 

@@ -1,7 +1,7 @@
 import { Formik, Field, Form } from "formik";
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { HandleBrag } from "../handles/HandleBrag";
+import { AddBrag as HandleBrag } from "../handles/HandleBrag";
 
 const AddBrag = () => {
   const [loading, isLoading] = useState(false);

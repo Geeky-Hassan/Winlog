@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { GetBrags } from "../handles/HandleBrag";
 import moment from "moment";
 import { Link } from "react-router-dom";
-import { CSVLink } from "react-csv";
 import BragPdfWrapper from "./BragPdfWrapper"; // Assuming you're using the wrapper for pre-fetching images
 import BragWordDownload from "./BragWordDownload";
+import { FaCopy } from "react-icons/fa";
+import { CopyToClipboard } from "react-copy-to-clipboard";
 
 const Brags = () => {
   const [data, setData] = useState([]);
   const [viewMode, setViewMode] = useState("timeline");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [copiedBragId, setCopiedBragId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,9 +89,27 @@ const Brags = () => {
               </div>
               <div className="md:w-3/4 md:pl-8">
                 <div className="bg-white rounded-lg shadow-xl p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">
-                    {brag.brag_name}
-                  </h3>
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-xl font-bold text-gray-800">
+                      {brag.brag_name}
+                    </h3>
+                    <CopyToClipboard
+                      text={brag.brag_name}
+                      onCopy={() => {
+                        setCopiedBragId(brag.brag_id);
+                        setTimeout(() => setCopiedBragId(null), 2000); // Reset after 2 seconds
+                      }}
+                    >
+                      <button className="ml-2 text-gray-500 hover:text-gray-700">
+                        <FaCopy />
+                      </button>
+                    </CopyToClipboard>
+                  </div>
+                  {copiedBragId === brag.brag_id && (
+                    <p className="text-another_red_violet-500 text-sm mb-2">
+                      Copied to clipboard!
+                    </p>
+                  )}
                   {brag.brag_img ? (
                     <img
                       src={getImageUrl(brag)}
@@ -139,7 +159,25 @@ const Brags = () => {
                 <span className="text-gray-500">No Image Available</span>
               </div>
             )}
-            <h2 className="text-xl font-semibold">{brag.brag_name}</h2>
+            <div className="flex items-center mb-3">
+              <h2 className="text-xl font-semibold">{brag.brag_name}</h2>
+              <CopyToClipboard
+                text={brag.brag_name}
+                onCopy={() => {
+                  setCopiedBragId(brag.brag_id);
+                  setTimeout(() => setCopiedBragId(null), 2000); // Reset after 2 seconds
+                }}
+              >
+                <button className="ml-2 text-gray-500 hover:text-gray-700">
+                  <FaCopy />
+                </button>
+              </CopyToClipboard>
+            </div>
+            {copiedBragId === brag.brag_id && (
+              <p className="text-green-500 text-sm mb-2">
+                Copied to clipboard!
+              </p>
+            )}
             <p className="text-gray-600">{brag.brag_desc}</p>
             <p className="text-gray-600">Tags: {brag.brag_tags}</p>
             <p className="text-gray-500 mt-2">

@@ -82,7 +82,7 @@ const BragPdf = ({ data, logoBase64, bragImages }) => {
             {bragImages[index] ? (
               <Image src={bragImages[index]} style={styles.image} />
             ) : (
-              <Text style={styles.errorText}>Image not available</Text>
+              <Text style={styles.errorText}></Text>
             )}
 
             <Text style={styles.text}>{brag.brag_desc}</Text>

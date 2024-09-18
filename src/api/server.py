@@ -1,10 +1,10 @@
 from typing import Annotated,Optional
 from datetime import datetime
-from fastapi import FastAPI,Depends, HTTPException,status,File,UploadFile,Form
+from fastapi import FastAPI,Depends, HTTPException,status,File,UploadFile,Form,Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 from database import session_local,Users,Brags
 from globe.back_func import *
@@ -172,12 +172,12 @@ from sqlalchemy import and_
 async def update_brag(
     token: Annotated[dict, Depends(get_current_user)],
     pTitle: str = Form(...),
-    title: str = Form(...),
-    desc: str = Form(...),
-    tags: list = Form(...),
-    designation: str = Form(...),
-    start_date: str = Form(...),
-    end_date: str = Form(...),
+    title: Optional[str] = Form(None),
+    desc: Optional[str] = Form(None),
+    tags: Optional[list] = Form(None),
+    designation: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    end_date: Optional[str] = Form(None),
     img: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ): 
@@ -190,11 +190,22 @@ async def update_brag(
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
         
-        # Find the old brag using the provided title (pTitle)
-        old_brag = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_name == pTitle)).first()
+        # Find the old brag using the provided title (pTitle) with case-insensitive search
+        old_brag = db.query(Brags).filter(and_(
+            Brags.users == user.user_id,
+            func.lower(Brags.brag_name) == func.lower(pTitle.strip())
+        )).first()
 
         if old_brag is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Old brag not found")
+
+        # Use old inputs if new inputs are empty
+        title = title if title else old_brag.brag_name
+        desc = desc if desc else old_brag.brag_desc
+        tags = tags if tags else old_brag.brag_tags
+        designation = designation if designation else old_brag.brag_designation
+        start_date = start_date if start_date else old_brag.brag_start_date
+        end_date = end_date if end_date else old_brag.brag_end_date
 
         # Call the `add_brag` coroutine and pass `db` as an argument
         new_brag = await add_brag(
@@ -237,25 +248,43 @@ async def update_brag(
 @app.delete("/d_brags")
 async def delete_brags(
     token: Annotated[dict, Depends(get_current_user)],
-    title: dict,
+    brag_title: str = Body(..., embed=True),
     db: Session = Depends(get_db)
 ): 
-    email= token['email']
+    email = token['email']
     
     try:
         user = db.query(Users).filter(Users.user_mail == email).first()
         
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
-        now = db.query(Brags).filter(and_(Brags.users == user.user_id, Brags.brag_name == title['brag_title'])).first()
-        db.delete(now)
+        
+        # Perform case-insensitive search
+        brag = db.query(Brags).filter(and_(
+            Brags.users == user.user_id,
+            func.lower(Brags.brag_name) == func.lower(brag_title.strip())
+        )).first()
+        
+        if brag is None:
+            # If brag is still not found, let's check if it exists for any user
+            any_brag = db.query(Brags).filter(func.lower(Brags.brag_name) == func.lower(brag_title.strip())).first()
+            if any_brag:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Brag with title '{brag_title}' exists but doesn't belong to the current user")
+            else:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Brag with title '{brag_title}' not found")
+        
+        db.delete(brag)
         db.commit()
         
         return {"detail": "Brag deleted successfully!", "status_code": status.HTTP_200_OK}
     
+    except HTTPException as he:
+        db.rollback()
+        raise he
     except Exception as e:
-        print(e)  # Log the error for debugging
-        raise HTTPException(detail="Could not delete brag at this moment", status_code=status.HTTP_400_BAD_REQUEST)
+        db.rollback()
+        print(f"Error deleting brag: {str(e)}")  # Log the error
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Could not delete brag: {str(e)}")
 
 # ----------------------------
 # Revert Brag to previous state

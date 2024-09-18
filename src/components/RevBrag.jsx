@@ -1,6 +1,6 @@
 import { Form, Formik, Field } from "formik";
 import { useState } from "react";
-import { RevBrag } from "../handles/HandleBrag";
+import { RevertBrag as RevBrag } from "../handles/HandleBrag";
 import { useNavigate } from "react-router-dom";
 
 const RevertBrag = () => {

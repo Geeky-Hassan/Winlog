@@ -1,11 +1,12 @@
 import { Form, Formik, Field } from "formik";
 import { useState } from "react";
-import { DelBrag } from "../handles/HandleBrag";
+import { DeleteBrag as DelBrag } from "../handles/HandleBrag";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const DeleteBrag = () => {
-  const [loading, isLoading] = useState(false);
-  const route = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="flex items-center justify-center">
@@ -15,25 +16,28 @@ const DeleteBrag = () => {
         </h1>
         <Formik
           initialValues={{ brag_title: "" }}
-          onSubmit={async (values) => {
-            isLoading(true);
+          onSubmit={async (values, { setSubmitting }) => {
+            setLoading(true);
             try {
-              const response = await DelBrag(values);
+              const response = await DelBrag(values.brag_title);
               if (response.success) {
-                alert("Brag document deleted successfully.");
-                route("/"); // Redirect after successful deletion
+                toast.success(response.message);
+                setTimeout(() => navigate("/"), 2000);
               } else {
-                alert("Error deleting brag document: " + response.message);
+                toast.error(response.message);
               }
             } catch (error) {
               console.error("Error deleting brag document:", error);
-              alert("An error occurred while deleting the brag document.");
+              toast.error(
+                "An unexpected error occurred while deleting the brag document."
+              );
             } finally {
-              isLoading(false);
+              setLoading(false);
+              setSubmitting(false);
             }
           }}
         >
-          {() => (
+          {({ isSubmitting }) => (
             <Form className="space-y-4">
               <div>
                 <label
@@ -54,6 +58,7 @@ const DeleteBrag = () => {
                 <button
                   className="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700 transition duration-200"
                   type="submit"
+                  disabled={isSubmitting || loading}
                 >
                   {loading ? "Deleting..." : "Delete Brag"}
                 </button>
