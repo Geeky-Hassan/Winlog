@@ -17,8 +17,15 @@ from docx import Document
 from docx.shared import Inches
 from io import BytesIO
 from fastapi.responses import StreamingResponse
+import requests
+import logging
+import google.generativeai as genai
 
 load_dotenv()  # This loads the variables from .env
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app:FastAPI = FastAPI()
@@ -421,6 +428,34 @@ async def download_brags_word(token: Annotated[dict, Depends(get_current_user)],
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": "attachment; filename=brags.docx"}
     )
+
+# Configure the Gemini AI
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+@app.get("/suggestions")
+async def get_suggestions(query: str):
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(f"Generate 5 creative and concise title suggestions based on this query: {query}. Return only the titles, one per line, without numbering.")
+        suggestions = [suggestion.strip() for suggestion in response.text.split('\n') if suggestion.strip()]
+        return {"suggestions": suggestions[:5]}  # Ensure we only return up to 5 suggestions
+    except Exception as e:
+        logger.error(f"Error generating suggestions: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating suggestions: {str(e)}")
+
+@app.get("/hashtag-suggestions")
+async def get_hashtag_suggestions(title: str):
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        logger.info(f"Generating hashtags for title: {title}")
+        response = model.generate_content(f"Generate 5 relevant and trendy hashtags for this title: {title}. Return only the hashtags without the '#' symbol, one per line, without numbering.")
+        logger.info(f"Raw response from Gemini: {response.text}")
+        hashtags = [hashtag.strip() for hashtag in response.text.split('\n') if hashtag.strip()]
+        logger.info(f"Processed hashtags: {hashtags}")
+        return {"hashtags": hashtags[:5]}  # Ensure we only return up to 5 hashtags
+    except Exception as e:
+        logger.error(f"Error generating hashtag suggestions: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error generating hashtag suggestions: {str(e)}")
 
 if __name__ == '__main__':
     import uvicorn

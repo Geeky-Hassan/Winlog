@@ -1,28 +1,26 @@
 import { Formik, Field, Form } from "formik";
 import { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AddBrag as HandleBrag } from "../handles/HandleBrag";
+import { getHashtagSuggestions } from "../services/geminiService";
 
 const AddBrag = () => {
   const [loading, isLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
+  const [generatingHashtags, setGeneratingHashtags] = useState(false);
   const route = useNavigate();
   const location = useLocation();
 
-  // Function to fetch suggestions from Gemini Flash API
-  const fetchSuggestions = async (query) => {
-    if (!query) {
-      setSuggestions([]);
-      return;
-    }
+  const generateHashtagSuggestions = async (title, setFieldValue) => {
+    if (!title) return;
+    setGeneratingHashtags(true);
     try {
-      const response = await fetch(
-        `https://api.gemini.com/v1/suggestions?query=${query}`
-      );
-      const data = await response.json();
-      setSuggestions(data.suggestions || []);
+      const hashtags = await getHashtagSuggestions(title);
+      setFieldValue("tags", hashtags.join(", "));
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
+      console.error("Error generating hashtag suggestions:", error);
+      // You can add a toast notification here to inform the user
+    } finally {
+      setGeneratingHashtags(false);
     }
   };
 
@@ -46,7 +44,7 @@ const AddBrag = () => {
             const formData = new FormData();
             formData.append("title", values.title);
             formData.append("desc", values.desc);
-            formData.append("tags", values.tags.split(","));
+            formData.append("tags", values.tags);
             formData.append("designation", values.designation);
 
             if (values.img) {
@@ -68,7 +66,7 @@ const AddBrag = () => {
             }
           }}
         >
-          {({ setFieldValue }) => (
+          {({ setFieldValue, values }) => (
             <Form className="space-y-4">
               <div>
                 <label
@@ -83,27 +81,7 @@ const AddBrag = () => {
                   name="title"
                   placeholder="Your brag title..."
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onChange={(e) => {
-                    setFieldValue("title", e.target.value);
-                    fetchSuggestions(e.target.value); // Fetch suggestions on input change
-                  }}
                 />
-                {suggestions.length > 0 && (
-                  <ul className="absolute bg-white border border-gray-300 mt-1 rounded-md shadow-lg z-10">
-                    {suggestions.map((suggestion, index) => (
-                      <li
-                        key={index}
-                        className="p-2 hover:bg-gray-200 cursor-pointer"
-                        onClick={() => {
-                          setFieldValue("title", suggestion);
-                          setSuggestions([]); // Clear suggestions after selection
-                        }}
-                      >
-                        {suggestion}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
               <div>
                 <label
@@ -113,6 +91,7 @@ const AddBrag = () => {
                   Brag Description:
                 </label>
                 <Field
+                  required
                   id="desc"
                   name="desc"
                   placeholder="Your brag description..."
@@ -131,12 +110,25 @@ const AddBrag = () => {
                   Comma separates tags
                 </span>
                 <Field
+                  required
                   id="tags"
                   name="tags"
                   placeholder="Creative, Skilled, Technical, Problem Solver"
                   type="text"
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+                <button
+                  type="button"
+                  className="mt-2 btn btn-primary"
+                  onClick={() =>
+                    generateHashtagSuggestions(values.title, setFieldValue)
+                  }
+                  disabled={generatingHashtags}
+                >
+                  {generatingHashtags
+                    ? "Generating..."
+                    : "Generate Hashtag Suggestions"}
+                </button>
               </div>
               <div>
                 <label
@@ -146,6 +138,7 @@ const AddBrag = () => {
                   Brag Designation:
                 </label>
                 <Field
+                  required
                   id="designation"
                   name="designation"
                   placeholder="Your Designation"
@@ -179,6 +172,7 @@ const AddBrag = () => {
                   Start Date:
                 </label>
                 <Field
+                  required
                   id="start_date"
                   name="start_date"
                   placeholder="Your brag start date"
@@ -191,7 +185,7 @@ const AddBrag = () => {
                   className="block text-sm font-medium text-gray-700"
                   htmlFor="end_date"
                 >
-                  End Date: (If going on, leave empty)
+                  End Date: (If ongoing, leave empty)
                 </label>
                 <Field
                   id="end_date"

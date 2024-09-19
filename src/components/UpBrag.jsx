@@ -1,33 +1,31 @@
 import { Formik, Field, Form } from "formik";
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { UpdateBrag as UpdateBrags } from "../handles/HandleBrag";
+import { getHashtagSuggestions } from "../services/geminiService";
 
 const UpdateBrag = () => {
   const [loading, isLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
+  const [generatingHashtags, setGeneratingHashtags] = useState(false);
   const route = useNavigate();
   const location = useLocation();
 
-  // Function to fetch suggestions from Gemini Flash API
-  const fetchSuggestions = async (query) => {
-    if (!query) {
-      setSuggestions([]);
-      return;
-    }
-    try {
-      const response = await fetch(
-        `https://api.gemini.com/v1/suggestions?query=${query}`
-      );
-      const data = await response.json();
-      setSuggestions(data.suggestions || []);
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-    }
-  };
-
   // Fetch previous title from location state or other source
   const previousTitle = location.state?.previousTitle || "";
+
+  const generateHashtagSuggestions = async (title, setFieldValue) => {
+    if (!title) return;
+    setGeneratingHashtags(true);
+    try {
+      const hashtags = await getHashtagSuggestions(title);
+      setFieldValue("tags", hashtags.join(", "));
+    } catch (error) {
+      console.error("Error generating hashtag suggestions:", error);
+      // You can add a toast notification here to inform the user
+    } finally {
+      setGeneratingHashtags(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center">
@@ -52,12 +50,12 @@ const UpdateBrag = () => {
             formData.append("pTitle", values.pTitle);
             formData.append("title", values.title);
             formData.append("desc", values.desc);
-            formData.append("tags", values.tags.split(","));
+            formData.append("tags", values.tags);
             formData.append("designation", values.designation);
 
             // Only append the image if it exists
             if (values.img) {
-              formData.append("img", values.img); // Ensure this is the file input
+              formData.append("img", values.img);
             }
 
             if (values.start_date) {
@@ -75,7 +73,7 @@ const UpdateBrag = () => {
             }
           }}
         >
-          {({ setFieldValue }) => (
+          {({ setFieldValue, values }) => (
             <Form className="space-y-4">
               <div>
                 <label
@@ -91,8 +89,8 @@ const UpdateBrag = () => {
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Previous brag title..."
                 />
-                <br />
-
+              </div>
+              <div>
                 <label
                   className="block text-sm font-medium text-gray-700"
                   htmlFor="title"
@@ -105,27 +103,7 @@ const UpdateBrag = () => {
                   name="title"
                   placeholder="Your brag title..."
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onChange={(e) => {
-                    setFieldValue("title", e.target.value);
-                    fetchSuggestions(e.target.value); // Fetch suggestions on input change
-                  }}
                 />
-                {suggestions.length > 0 && (
-                  <ul className="absolute bg-white border border-gray-300 mt-1 rounded-md shadow-lg z-10">
-                    {suggestions.map((suggestion, index) => (
-                      <li
-                        key={index}
-                        className="p-2 hover:bg-gray-200 cursor-pointer"
-                        onClick={() => {
-                          setFieldValue("title", suggestion);
-                          setSuggestions([]); // Clear suggestions after selection
-                        }}
-                      >
-                        {suggestion}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
               <div>
                 <label
@@ -159,6 +137,18 @@ const UpdateBrag = () => {
                   type="text"
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+                <button
+                  type="button"
+                  className="mt-2 btn btn-primary"
+                  onClick={() =>
+                    generateHashtagSuggestions(values.title, setFieldValue)
+                  }
+                  disabled={generatingHashtags}
+                >
+                  {generatingHashtags
+                    ? "Generating..."
+                    : "Generate Hashtag Suggestions"}
+                </button>
               </div>
               <div>
                 <label
@@ -213,7 +203,7 @@ const UpdateBrag = () => {
                   className="block text-sm font-medium text-gray-700"
                   htmlFor="end_date"
                 >
-                  End Date: (If going on, leave empty)
+                  End Date: (If ongoing, leave empty)
                 </label>
                 <Field
                   id="end_date"
@@ -228,7 +218,7 @@ const UpdateBrag = () => {
                   className="w-full btn btn-primary text-white font-semibold py-2 rounded-md hover:bg-indigo-700 transition duration-200"
                   type="submit"
                 >
-                  {loading ? "Submitting..." : "Update"}
+                  {loading ? "Updating..." : "Update"}
                 </button>
               </div>
             </Form>
