@@ -12,6 +12,7 @@ const Logout = () => {
 
         // Redirect the user to the login page
         navigate('/login');
+        window.location.reload();
       } catch (error) {
         console.error('Error logging out:', error);
       }

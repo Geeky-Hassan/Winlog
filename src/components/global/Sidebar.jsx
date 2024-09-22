@@ -4,10 +4,12 @@ import { Link, useLocation } from "react-router-dom"; // Import useLocation
 import { Squeeze as Hamburger } from "hamburger-react";
 import logo from "../../assets/logo.png";
 
+
 const Sidebar = () => {
   const location = useLocation(); // Get the current location
   const [active, setActive] = useState(location.pathname); // Set initial active state based on current path
   const [isOpen, setIsOpen] = useState(false);
+
 
   return (
     <>

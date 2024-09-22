@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:8000";
 
 const redirectWithMessage = (message, isSuccess = true) => {
   const encodedMessage = encodeURIComponent(message);

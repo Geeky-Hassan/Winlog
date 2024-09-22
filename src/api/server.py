@@ -33,6 +33,9 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.enums import TA_CENTER
 from PIL import Image as PILImage
 import io
+from bs4 import BeautifulSoup
+import html
+import html2text
 
 load_dotenv()  # This loads the variables from .env
 
@@ -427,10 +430,9 @@ async def download_brags_word(token: Annotated[dict, Depends(get_current_user)],
     email = token['email']
     user_id = db.query(Users).filter(Users.user_mail == email).first().user_id 
     
-    # Fetch only the latest version of each brag, ordered by updated_time
     latest_brags = db.query(Brags).filter(
         Brags.users == user_id,
-        Brags.brag_next == None,  # This ensures we get only the latest version
+        Brags.brag_next == None,
         Brags.is_soft_deleted == False
     ).order_by(desc(Brags.updated_time)).all()
 
@@ -448,6 +450,11 @@ async def download_brags_word(token: Annotated[dict, Depends(get_current_user)],
         document.add_picture(logo_path, width=Inches(3))
 
     document.add_heading('Your Brag Timeline', 0)
+
+    def html_to_markdown(html_content):
+        h = html2text.HTML2Text()
+        h.ignore_links = False
+        return h.handle(html_content)
 
     def add_brag_card(brag, document):
         table = document.add_table(rows=1, cols=1)
@@ -475,9 +482,10 @@ async def download_brags_word(token: Annotated[dict, Depends(get_current_user)],
         date = cell.add_paragraph(f"Date: {start_date} - {end_date}")
         date.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        desc = brag.brag_desc[:100] + "..." if brag.brag_desc and len(brag.brag_desc) > 100 else (brag.brag_desc or "No description")
+        # Convert HTML description to markdown-like text
+        desc = html_to_markdown(brag.brag_desc) if brag.brag_desc else "No description"
         description = cell.add_paragraph(desc)
-        description.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        description.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Changed to LEFT for better readability
         
         tags = brag.brag_tags.split(',') if brag.brag_tags else ["No tags"]
         tag_para = cell.add_paragraph()
@@ -600,6 +608,11 @@ async def download_brags_pdf(token: Annotated[dict, Depends(get_current_user)], 
     story.append(Paragraph("Your Brag Timeline", styles['Heading1']))
     story.append(Spacer(1, 24))
 
+    def html_to_markdown(html_content):
+        h = html2text.HTML2Text()
+        h.ignore_links = False
+        return h.handle(html_content)
+
     def create_brag_card(brag):
         card_content = []
         
@@ -624,9 +637,9 @@ async def download_brags_pdf(token: Annotated[dict, Depends(get_current_user)], 
                 card_content.append(Paragraph(f"Image not found", styles['BragInfo']))
         
         card_content.append(Paragraph(brag.brag_name, styles['BragTitle']))
-        card_content.append(Paragraph(f"Date: {brag.brag_start_date} - {brag.brag_end_date}", styles['BragInfo']))
+        card_content.append(Paragraph(f"Date: {brag.brag_start_date} - {brag.brag_end_date or 'Present'}", styles['BragInfo']))
         
-        desc = brag.brag_desc[:100] + "..." if brag.brag_desc and len(brag.brag_desc) > 100 else (brag.brag_desc or "No description")
+        desc = html_to_markdown(brag.brag_desc) if brag.brag_desc else "No description"
         card_content.append(Paragraph(desc, styles['BragDesc']))
         
         tags = brag.brag_tags.split(',') if brag.brag_tags else ["No tags"]
