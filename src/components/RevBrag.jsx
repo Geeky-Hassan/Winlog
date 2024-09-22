@@ -2,34 +2,43 @@ import { Form, Formik, Field } from "formik";
 import { useState } from "react";
 import { RevertBrag as RevBrag } from "../handles/HandleBrag";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const RevertBrag = () => {
-  const [loading, isLoading] = useState(false);
-  const route = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   return (
-    <div className="= items-center justify-center">
+    <div className="items-center justify-center">
       <div className="w-full max-w-md p-6 bg-white shadow-lg rounded-lg">
         <h1 className="text-2xl font-bold mb-4 text-center">
           Revert Your Brag Document
         </h1>
         <Formik
           initialValues={{ brag_title: "" }}
-          onSubmit={async (values) => {
-            isLoading(true);
+          onSubmit={async (values, { setSubmitting }) => {
+            setLoading(true);
             try {
               const response = await RevBrag(values);
-              if (response.success) {
-                alert("Brag document reverted successfully.");
-                route("/"); // Redirect after successful reversion
+              if (response.status_code === 200) {
+                toast.success("Brag reverted successfully!");
+                setTimeout(() => {
+                  navigate("/"); // Redirect to home page after 2 seconds
+                }, 2000);
               } else {
-                alert("Error reverting brag document: " + response.message);
+                toast.error(
+                  response.detail || "Failed to revert brag. Please try again."
+                );
               }
             } catch (error) {
               console.error("Error reverting brag document:", error);
-              alert("An error occurred while reverting the brag document.");
+              toast.error(
+                error.response?.data?.detail ||
+                  "Failed to revert brag. Please try again."
+              );
             } finally {
-              isLoading(false);
+              setLoading(false);
+              setSubmitting(false);
             }
           }}
         >

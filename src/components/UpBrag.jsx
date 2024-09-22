@@ -3,11 +3,14 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { UpdateBrag as UpdateBrags } from "../handles/HandleBrag";
 import { getHashtagSuggestions } from "../services/geminiService";
+import toast from "react-hot-toast";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const UpdateBrag = () => {
-  const [loading, isLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [generatingHashtags, setGeneratingHashtags] = useState(false);
-  const route = useNavigate();
+  const navigate = useNavigate();
   const location = useLocation();
 
   // Fetch previous title from location state or other source
@@ -24,6 +27,42 @@ const UpdateBrag = () => {
       // You can add a toast notification here to inform the user
     } finally {
       setGeneratingHashtags(false);
+    }
+  };
+
+  const handleSubmit = async (values, { setSubmitting }) => {
+    const formData = new FormData();
+    formData.append("pTitle", values.pTitle);
+
+    if (values.title) formData.append("title", values.title);
+    if (values.desc) formData.append("desc", values.desc);
+    if (values.tags) formData.append("tags", values.tags);
+    if (values.img) formData.append("img", values.img);
+    if (values.start_date) formData.append("start_date", values.start_date);
+    if (values.end_date) formData.append("end_date", values.end_date);
+
+    setLoading(true);
+    try {
+      const response = await UpdateBrags(formData);
+      if (response.status_code === 200) {
+        toast.success("Brag updated successfully!");
+        setTimeout(() => {
+          navigate("/brags"); // Redirect to brags page after 2 seconds
+        }, 2000); // Redirect to brags page
+      } else {
+        toast.error(
+          response.detail || "Failed to update brag. Please try again."
+        );
+      }
+    } catch (error) {
+      console.error("Error updating brag:", error);
+      toast.error(
+        error.response?.data?.detail ||
+          "Failed to update brag. Please try again."
+      );
+    } finally {
+      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -44,34 +83,7 @@ const UpdateBrag = () => {
             start_date: "",
             end_date: "",
           }}
-          onSubmit={async (values) => {
-            console.log("Form values on submit:", values); // Debug log
-            const formData = new FormData();
-            formData.append("pTitle", values.pTitle);
-            formData.append("title", values.title);
-            formData.append("desc", values.desc);
-            formData.append("tags", values.tags);
-            formData.append("designation", values.designation);
-
-            // Only append the image if it exists
-            if (values.img) {
-              formData.append("img", values.img);
-            }
-
-            if (values.start_date) {
-              formData.append("start_date", values.start_date);
-            }
-            if (values.end_date) {
-              formData.append("end_date", values.end_date);
-            }
-
-            isLoading(true);
-            try {
-              await UpdateBrags(formData, route, location);
-            } finally {
-              isLoading(false);
-            }
-          }}
+          onSubmit={handleSubmit}
         >
           {({ setFieldValue, values }) => (
             <Form className="space-y-4">
@@ -98,7 +110,6 @@ const UpdateBrag = () => {
                   Brag Title:
                 </label>
                 <Field
-                  required
                   id="title"
                   name="title"
                   placeholder="Your brag title..."
@@ -112,12 +123,11 @@ const UpdateBrag = () => {
                 >
                   Brag Description:
                 </label>
-                <Field
-                  id="desc"
-                  name="desc"
-                  placeholder="Your brag description..."
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                <ReactQuill
+                  theme="snow"
+                  value={values.desc}
+                  onChange={(content) => setFieldValue("desc", content)}
+                  className="mt-1"
                 />
               </div>
               <div>
@@ -149,21 +159,6 @@ const UpdateBrag = () => {
                     ? "Generating..."
                     : "Generate Hashtag Suggestions"}
                 </button>
-              </div>
-              <div>
-                <label
-                  className="block text-sm font-medium text-gray-700"
-                  htmlFor="designation"
-                >
-                  Brag Designation:
-                </label>
-                <Field
-                  id="designation"
-                  name="designation"
-                  placeholder="Your Designation"
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
               <div>
                 <label
@@ -203,12 +198,12 @@ const UpdateBrag = () => {
                   className="block text-sm font-medium text-gray-700"
                   htmlFor="end_date"
                 >
-                  End Date: (If ongoing, leave empty)
+                  End Date: (Optional, leave empty if ongoing)
                 </label>
                 <Field
                   id="end_date"
                   name="end_date"
-                  placeholder="Your brag end date"
+                  placeholder="Your brag end date (optional)"
                   type="date"
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />

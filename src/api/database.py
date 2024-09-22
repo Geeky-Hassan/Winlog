@@ -1,60 +1,70 @@
 from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
-from sqlalchemy import Engine,create_engine,Column,UUID,String,Boolean,ForeignKey,Integer,TEXT,DateTime,func
-from sqlalchemy.orm import Mapped,mapped_column,session,sessionmaker,DeclarativeBase,Session,relationship
-from datetime import datetime
-
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
 import os
 
-class Base(DeclarativeBase):
-    pass
+SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
 class Users(Base):
     __tablename__ = "users"
-    user_id:Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    user_mail:Mapped[str] = mapped_column(String(30))
-    user_name:Mapped[str] = mapped_column(String(30))
-    user_pass:Mapped[str] = mapped_column(String(255))
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    disabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    brags:Mapped[list["Brags"]] = relationship(backref="brags",passive_deletes=True)
+    user_id = Column(Integer, primary_key=True, index=True)
+    user_mail = Column(String, unique=True, index=True)
+    user_name = Column(String)
+    user_pass = Column(String)
+    is_admin = Column(Boolean, default=False)
+    disabled = Column(Boolean, default=False)
 
-    def __repr__(self) -> str:
-        return f"User> id: {self.user_id}, name: {self.user_name}, pass: {self.user_pass}, is_admin: {self.is_admin}, disabled: {self.disabled}"
-    
+    brags = relationship("Brags", back_populates="user")
+
 class Brags(Base):
     __tablename__ = "brags"
-    brag_id:Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    brag_name:Mapped[str] = mapped_column(String(100))
-    brag_desc:Mapped[str] = mapped_column(TEXT)
-    brag_tags:Mapped[str] = mapped_column(TEXT)
-    brag_designation:Mapped[str] = mapped_column(TEXT)
-    brag_img:Mapped[str] = mapped_column(String(100),nullable=True)
-    brag_prev:Mapped[int] = mapped_column(Integer,default=None,nullable=True)
-    brag_next:Mapped[int] = mapped_column(Integer,default=None,nullable=True)
-    is_soft_deleted:Mapped[bool] = mapped_column(Boolean,default=False)
-    brag_start_date:Mapped[datetime] = mapped_column(DateTime,nullable=True)
-    brag_end_date:Mapped[datetime] = mapped_column(DateTime,nullable=True)
-    created_time:Mapped[datetime] = mapped_column(DateTime,default=func.now())
-    updated_time:Mapped[datetime] = mapped_column(DateTime,default=func.now(),onupdate=func.now())
 
-    users:Mapped[int] = mapped_column(ForeignKey("users.user_id",ondelete="CASCADE"))
+    brag_id = Column(Integer, primary_key=True, index=True)
+    brag_name = Column(String)
+    brag_desc = Column(String)
+    brag_designation = Column(String)
+    brag_tags = Column(String)
+    brag_img = Column(String)
+    brag_start_date = Column(String)
+    brag_end_date = Column(String)
+    created_time = Column(DateTime)
+    updated_time = Column(DateTime)
+    is_soft_deleted = Column(Boolean, default=False)
+    brag_prev = Column(Integer, ForeignKey("brags.brag_id"), nullable=True)
+    brag_next = Column(Integer, ForeignKey("brags.brag_id"), nullable=True)
+    users = Column(Integer, ForeignKey("users.user_id"))
 
-    def __repr__(self) -> str:
-        return f"Brags> id: {self.brag_id}, name: {self.brag_name}"
-
+    user = relationship("Users", back_populates="brags")
+    prev_brag = relationship("Brags", foreign_keys=[brag_prev], remote_side=[brag_id], uselist=False)
+    next_brag = relationship("Brags", foreign_keys=[brag_next], remote_side=[brag_id], uselist=False)
 
 load_dotenv()
+
+def get_db():
+    db = session_local()
+    try:
+        yield db
+    finally:
+        db.close()
+
 try:
-    connection_url:str = os.getenv('database_url')
-    engine:Engine = create_engine(connection_url)
-    global session_local
-    session_local = sessionmaker(autoflush=False,autocommit=False,bind=engine)        
+    connection_url = os.getenv('database_url')
+    if connection_url:
+        engine = create_engine(connection_url)
+        session_local = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 except Exception as e:
-    print(e)
+    print(f"Error setting up database connection: {e}")
 
 try:
     Base.metadata.create_all(bind=engine)
 except Exception as e:
-    print(e)
+    print(f"Error creating database tables: {e}")

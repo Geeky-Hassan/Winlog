@@ -142,3 +142,35 @@ section {
 .password-toggle svg {
   @apply h-5 w-5 text-gray-500;
 }
+
+/* Add these styles at the end of your index.css file */
+
+.brag-description {
+  line-height: 1.5em;
+  max-height: 4.5em; /* 3 lines */
+  overflow: hidden;
+  position: relative;
+}
+
+.brag-description.expanded {
+  max-height: none;
+}
+
+.brag-description:not(.expanded)::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 1.5em;
+  background: linear-gradient(to bottom, transparent, white);
+}
+
+.brag-description.expanded::after {
+  display: none;
+}
+
+/* New styles for the Read More button */
+.read-more-button {
+  @apply text-tyrian_purple-500 hover:text-tyrian_purple-700 text-sm font-semibold py-1 px-3 rounded-full bg-tyrian_purple-100 hover:bg-tyrian_purple-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tyrian_purple-400;
+}

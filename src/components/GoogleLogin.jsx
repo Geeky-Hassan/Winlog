@@ -8,7 +8,6 @@ const GoogleLogin = () => {
 
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      console.log("Google login response:", tokenResponse);
       try {
         const response = await fetch("http://127.0.0.1:8000/google-login", {
           method: "POST",
@@ -18,7 +17,6 @@ const GoogleLogin = () => {
           body: JSON.stringify({ token: tokenResponse.access_token }),
         });
         const data = await response.json();
-        console.log("Backend response:", data);
         if (response.ok) {
           localStorage.setItem("authToken", data.authToken);
           toast.success("Google login successful!");

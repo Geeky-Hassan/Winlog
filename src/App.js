@@ -9,9 +9,11 @@ import DBrag from "./pages/DBrags";
 import RBrag from "./pages/RevBrag";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
+import { BragsProvider } from "./BragsContext";
+
 function App() {
   return (
-    <>
+    <BragsProvider>
       <Toaster />
       <Router>
         <Routes>
@@ -37,7 +39,7 @@ function App() {
           />
         </Routes>
       </Router>
-    </>
+    </BragsProvider>
   );
 }
 

@@ -3,10 +3,12 @@ import { useState } from "react";
 import { DeleteBrag as DelBrag } from "../handles/HandleBrag";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useBrags } from "../BragsContext";
 
 const DeleteBrag = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { refreshData } = useBrags();
 
   return (
     <div className="flex items-center justify-center">
@@ -20,16 +22,22 @@ const DeleteBrag = () => {
             setLoading(true);
             try {
               const response = await DelBrag(values.brag_title);
-              if (response.success) {
-                toast.success(response.message);
-                setTimeout(() => navigate("/"), 2000);
+              if (response.status_code === 200) {
+                toast.success("Brag deleted successfully!");
+                refreshData(); // Refresh the brags data
+                setTimeout(() => {
+                  navigate("/");
+                }, 2000);
               } else {
-                toast.error(response.message);
+                toast.error(
+                  response.detail || "Failed to delete brag. Please try again."
+                );
               }
             } catch (error) {
               console.error("Error deleting brag document:", error);
               toast.error(
-                "An unexpected error occurred while deleting the brag document."
+                error.response?.data?.detail ||
+                  "Failed to delete brag. Please try again."
               );
             } finally {
               setLoading(false);

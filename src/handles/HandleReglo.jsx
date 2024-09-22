@@ -11,17 +11,23 @@ export const HandleRegister = async (value, route) => {
       body: JSON.stringify(value),
     });
     const dat = await resp.json();
-    
-    if (dat.status == 201) {
+
+    if (dat.status === 201) {
       toast.success(dat.message, {
         duration: 3000,
         position: "top-center",
       });
-      localStorage.setItem("authToken",dat.authToken)
+      localStorage.setItem("authToken", dat.authToken);
       route(`/`);
+    } else {
+      // Always show "Error creating user" for any error, including 400
+      toast.error("User Already Exist", {
+        duration: 3000,
+        position: "top-center",
+      });
     }
   } catch (error) {
-    toast.error(error.message, {
+    toast.error("User Already Exist", {
       duration: 3000,
       position: "top-center",
     });
@@ -29,7 +35,6 @@ export const HandleRegister = async (value, route) => {
 };
 
 export const HandleLogin = async (values, route) => {
-  console.log(values);
   try {
     const resp = await fetch(`http://127.0.0.1:8000/login`, {
       method: "POST",
@@ -41,14 +46,14 @@ export const HandleLogin = async (values, route) => {
     });
 
     const dat = await resp.json();
-    console.log(dat);
 
-    if (resp.status==200) { // Check if the response is successful
+    if (resp.status === 200) {
+      // Check if the response is successful
       toast.success(dat.message, {
         duration: 3000,
         position: "top-center",
       });
-      
+
       localStorage.setItem("authToken", dat.authToken);
       route(`/`);
     } else {
@@ -71,10 +76,9 @@ export const HandleLogin = async (values, route) => {
       }
     }
   } catch (error) {
-    console.log(error);
     toast.error("An error occurred while logging in", {
       duration: 1500,
       position: "top-center",
     });
   }
-}
+};

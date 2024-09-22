@@ -1,14 +1,16 @@
 import { Formik, Field, Form } from "formik";
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AddBrag as HandleBrag } from "../handles/HandleBrag";
 import { getHashtagSuggestions } from "../services/geminiService";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import toast from "react-hot-toast";
 
 const AddBrag = () => {
-  const [loading, isLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [generatingHashtags, setGeneratingHashtags] = useState(false);
-  const route = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate();
 
   const generateHashtagSuggestions = async (title, setFieldValue) => {
     if (!title) return;
@@ -40,7 +42,7 @@ const AddBrag = () => {
             start_date: "",
             end_date: "",
           }}
-          onSubmit={async (values) => {
+          onSubmit={async (values, { setSubmitting }) => {
             const formData = new FormData();
             formData.append("title", values.title);
             formData.append("desc", values.desc);
@@ -58,11 +60,23 @@ const AddBrag = () => {
               formData.append("end_date", values.end_date);
             }
 
-            isLoading(true);
+            setLoading(true);
             try {
-              await HandleBrag(formData, route, location);
+              const response = await HandleBrag(formData);
+              if (response.status_code === 201) {
+                toast.success("Brag added successfully!");
+                setTimeout(() => navigate("/brags"), 2000);
+              } else {
+                toast.error(
+                  response.detail || "Failed to add brag. Please try again."
+                );
+              }
+            } catch (error) {
+              console.error("Error adding brag:", error);
+              toast.error("Failed to add brag. Please try again.");
             } finally {
-              isLoading(false);
+              setLoading(false);
+              setSubmitting(false);
             }
           }}
         >
@@ -90,13 +104,11 @@ const AddBrag = () => {
                 >
                   Brag Description:
                 </label>
-                <Field
-                  required
-                  id="desc"
-                  name="desc"
-                  placeholder="Your brag description..."
-                  type="text"
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                <ReactQuill
+                  theme="snow"
+                  value={values.desc}
+                  onChange={(content) => setFieldValue("desc", content)}
+                  className="mt-1"
                 />
               </div>
               <div>
@@ -130,22 +142,21 @@ const AddBrag = () => {
                     : "Generate Hashtag Suggestions"}
                 </button>
               </div>
-              <div>
+              {/* <div>
                 <label
                   className="block text-sm font-medium text-gray-700"
                   htmlFor="designation"
                 >
-                  Brag Designation:
+                  Brag Designation: (Optional)
                 </label>
                 <Field
-                  required
                   id="designation"
                   name="designation"
-                  placeholder="Your Designation"
+                  placeholder="Your Designation (Optional)"
                   type="text"
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-              </div>
+              </div> */}
               <div>
                 <label
                   className="block text-sm font-medium text-gray-700"
@@ -185,12 +196,12 @@ const AddBrag = () => {
                   className="block text-sm font-medium text-gray-700"
                   htmlFor="end_date"
                 >
-                  End Date: (If ongoing, leave empty)
+                  End Date: (Optional, leave empty if ongoing)
                 </label>
                 <Field
                   id="end_date"
                   name="end_date"
-                  placeholder="Your brag end date"
+                  placeholder="Your brag end date (optional)"
                   type="date"
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
